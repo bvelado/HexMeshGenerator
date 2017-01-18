@@ -66,16 +66,25 @@ public class HexMeshGenerator : IMeshGenerator
     {
         Mesh mesh = new Mesh();
 
+        var vertices = GenerateVertices(4,4);
+        var triangles = GenerateTriangles(4,4);
+
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+
+        mesh.Optimize();
+        mesh.RecalculateNormals();
+
         return mesh;
     }
 
     public Vector3[] GenerateVertices(int mapWidth, int mapHeight)
     {
         // Number of rows with an odd index
-        int numberOfOddRows = mapHeight / 2;
+        int numberOfOddRows = Mathf.RoundToInt(mapHeight / 2f);
 
         // Number of rows with an even index
-        int numberOfEvenRows = Mathf.RoundToInt((mapHeight / 2) +0.5f);
+        int numberOfEvenRows = Mathf.RoundToInt((mapHeight / 2f) + 0.6f);
 
         // For each row, south west and south vertices are registered
         int verticesPerLine = (mapWidth * 2) + 1;
@@ -83,9 +92,15 @@ public class HexMeshGenerator : IMeshGenerator
         // number of hexagons + ( numbers of lines + 1 (top line) X the number of vertices needed per lines ) + 1 additional vertice per odd row + 1 additional vertice per even row (without first and last line )
         int verticesLength = (mapWidth * mapHeight) + ((mapHeight + 1) * verticesPerLine) + numberOfOddRows + (numberOfEvenRows - 2);
 
-        Debug.Log(verticesLength);
+        /// IMPORTANT
+        /// TODO
+        /// Find why it sometimes need an additional vertice
+
+        //verticesLength += 1;
 
         Vector3[] vertices = new Vector3[verticesLength];
+
+        Debug.Log("Vertices length : " + verticesLength);
 
         int i = 0;
 
@@ -164,9 +179,45 @@ public class HexMeshGenerator : IMeshGenerator
 
         #endregion
 
-        Debug.Log(i);
+        Debug.Log("Vertices used : " + i);
 
         return vertices;
+    }
+
+    public int[] GenerateTriangles(int mapWidth, int mapHeight)
+    {
+        int[] triangles = new int[mapWidth * mapHeight * 6 * 3];
+
+        int i = 0;
+        for(int y = 0; y < mapHeight; y++)
+        {
+            for(int x = 0; x < mapWidth; x++)
+            {
+                int oddEvenRowIndexModifier = y > 0 && !IsOdd(y) ? 0 : 2;
+                int yIndex = y * ((mapWidth * 3) + oddEvenRowIndexModifier);
+
+                // South west triangle
+                triangles[i] = yIndex + (x * 3);
+                triangles[i + 1] = yIndex + 2 + (x * 3);
+                triangles[i + 2] = yIndex + 1 + (x * 3);
+
+                // South east triangle
+                triangles[i + 3] = yIndex + 1 + (x * 3);
+                triangles[i + 4] = yIndex + 2 + (x * 3);
+                triangles[i + 5] = yIndex + 3 + (x * 3);
+
+                // East triangle
+                triangles[i + 3] = yIndex + 1 + (x * 3);
+                triangles[i + 4] = yIndex + 2 + (x * 3);
+                triangles[i + 5] = yIndex + 3 + (x * 3);
+
+                i += 6;
+            }
+        }
+
+        Debug.Log(i);
+
+        return triangles;
     }
 
     //private Vector3 GetHexCorner(Vector3 center, int index)
